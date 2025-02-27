@@ -3,6 +3,7 @@ package api
 import (
 	"database/sql"
 	"encoding/json"
+	api_helper "go-todos-api/src/api/helper"
 	"go-todos-api/src/model"
 	"io"
 	"log"
@@ -35,6 +36,7 @@ func GetTodos(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		todos = append(todos, todo)
+		log.Print(todo.Title)
 		hasData = true
 	}
 
@@ -42,15 +44,9 @@ func GetTodos(w http.ResponseWriter, r *http.Request) {
 		todos = []model.Todos{}
 	}
 
-	response := map[string]interface{}{
-		"data":    todos,
-		"error":   false,
-		"status":  http.StatusOK,
-		"message": "Success get all data todos",
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	response := api_helper.SetResponse(todos, false, http.StatusOK, "Success get all data todos")
+	responseJson, _ := json.Marshal(response)
+	api_helper.SendResponse(w, responseJson, http.StatusOK)
 }
 
 func GetTodo(w http.ResponseWriter, r *http.Request) {
@@ -61,14 +57,9 @@ func GetTodo(w http.ResponseWriter, r *http.Request) {
 	err := db.QueryRow("SELECT id, title, description, status FROM todos WHERE id = ?", id).Scan(&todo.ID, &todo.Title, &todo.Description, &todo.Status)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			response := map[string]interface{}{
-				"data":    nil,
-				"error":   true,
-				"status":  http.StatusNotFound,
-				"message": "No user found with the given ID",
-			}
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(response)
+			response := api_helper.SetResponse(nil, true, http.StatusOK, "No user found with the given ID")
+			responseJson, _ := json.Marshal(response)
+			api_helper.SendResponse(w, responseJson, http.StatusOK)
 
 			return
 		}
@@ -76,15 +67,9 @@ func GetTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := map[string]interface{}{
-		"data":    todo,
-		"error":   false,
-		"status":  http.StatusOK,
-		"message": "",
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	response := api_helper.SetResponse(todo, false, http.StatusOK, "Success get data")
+	responseJson, _ := json.Marshal(response)
+	api_helper.SendResponse(w, responseJson, http.StatusOK)
 }
 
 func CreateTodo(w http.ResponseWriter, r *http.Request) {
@@ -93,6 +78,13 @@ func CreateTodo(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&todo)
 	if err != nil { // cek apakah ada kesalahan
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if err := todo.Validate(); err != nil {
+		response := api_helper.SetResponse(nil, true, http.StatusBadRequest, "Validation failed: "+err.Error())
+		responseJson, _ := json.Marshal(response)
+		api_helper.SendResponse(w, responseJson, http.StatusBadRequest)
 		return
 	}
 
@@ -108,15 +100,9 @@ func CreateTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := map[string]interface{}{
-		"data":    id,
-		"error":   false,
-		"status":  http.StatusOK,
-		"message": "Successfully created Todo",
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	response := api_helper.SetResponse(id, false, http.StatusOK, "Successfully created Todo")
+	responseJson, _ := json.Marshal(response)
+	api_helper.SendResponse(w, responseJson, http.StatusOK)
 }
 
 func UpdateTodo(w http.ResponseWriter, r *http.Request) {
@@ -134,25 +120,16 @@ func UpdateTodo(w http.ResponseWriter, r *http.Request) {
 	var todo model.CreateTodoRequest
 	err = json.Unmarshal(body, &todo)
 
-	if err != nil { // cek apakah ada kesalahan
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
-	// Validasi input menggunakan validator
 	if err := todo.Validate(); err != nil {
-		response := map[string]interface{}{
-			"data":    nil,
-			"error":   true,
-			"status":  http.StatusBadRequest,
-			"message": "Validation failed: " + err.Error(),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		response := api_helper.SetResponse(nil, true, http.StatusBadRequest, "Validation failed: "+err.Error())
+		responseJson, _ := json.Marshal(response)
+		api_helper.SendResponse(w, responseJson, http.StatusBadRequest)
 		return
 	}
-	log.Print(todo.Title)
-	log.Print(todo.Description)
 
 	result, err := db.Exec("UPDATE todos SET title = ?, description = ?, status = ? WHERE id = ?", todo.Title, todo.Description, todo.Status, id)
 	if err != nil {
@@ -166,15 +143,9 @@ func UpdateTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := map[string]interface{}{
-		"data":    id,
-		"error":   false,
-		"status":  http.StatusOK,
-		"message": "Successfully updated Todo",
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	response := api_helper.SetResponse(id, false, http.StatusOK, "Successfully updated Todo")
+	responseJson, _ := json.Marshal(response)
+	api_helper.SendResponse(w, responseJson, http.StatusOK)
 }
 
 func HardDeleteTodo(w http.ResponseWriter, r *http.Request) {
@@ -187,13 +158,7 @@ func HardDeleteTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := map[string]interface{}{
-		"data":    id,
-		"error":   false,
-		"status":  http.StatusOK,
-		"message": "Successfully deleted todo",
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	response := api_helper.SetResponse(id, false, http.StatusOK, "Successfully deleted todo")
+	responseJson, _ := json.Marshal(response)
+	api_helper.SendResponse(w, responseJson, http.StatusOK)
 }

@@ -3,7 +3,7 @@ package model
 import "github.com/go-playground/validator/v10"
 
 type Todos struct {
-	ID          int    `json:"id"`
+	ID          int    `gorm:"primary_key" json:"id"`
 	Title       string `json:"title"`
 	Description string `json:"description"`
 	Status      string `json:"status"`
