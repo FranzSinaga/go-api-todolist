@@ -1,37 +1,32 @@
 package main
 
 import (
-	"database/sql"
 	fmtLog "log"
 	"net/http"
 	"os"
 
+	"go-todos-api/config"
 	"go-todos-api/middleware"
 	"go-todos-api/src/api"
 
 	"github.com/go-kit/log"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
 )
-
-var db *sql.DB
 
 func main() {
 	var err error
 
 	logger := log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout))
-	db, err = sql.Open("mysql", "dbeaver:dbeaver@tcp(127.0.0.1:3306)/todolist?charset=utf8")
-	if err != nil {
-		logger.Log("ERROR MESSAGE", err)
+	if os.Getenv("ENV") != "production" {
+		err := godotenv.Load()
+		if err != nil {
+			fmtLog.Println("Warning: No .env file found")
+		}
 	}
 
-	_, err = db.Query("SELECT * FROM todos")
-	if err != nil {
-		panic(err.Error())
-	}
-	fmtLog.Printf("DB Connection Successfully")
-	defer db.Close()
-
+	db := config.DBConnection(logger)
 	api.SetDB(db)
 	router := mux.NewRouter()
 
@@ -46,8 +41,14 @@ func main() {
 	router.HandleFunc("/api/todo/hard-delete/{id}", api.HardDeleteTodo).Methods("DELETE")
 
 	// Start the server
-	port := ":8000"
-	fmtLog.Printf("Server connected to port :8000")
-	http.ListenAndServe(port, router)
-
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	fmtLog.Println("Server connected to port", port)
+	err = http.ListenAndServe(":"+port, router)
+	if err != nil {
+		logger.Log("level", "error", "message", err.Error())
+		panic(err)
+	}
 }

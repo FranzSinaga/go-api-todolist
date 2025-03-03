@@ -11,13 +11,11 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// ResponseLogger wraps http.ResponseWriter to capture status code
 type ResponseLogger struct {
 	http.ResponseWriter
 	StatusCode int
 }
 
-// WriteHeader captures the status code
 func (rl *ResponseLogger) WriteHeader(code int) {
 	rl.StatusCode = code
 	rl.ResponseWriter.WriteHeader(code)

@@ -7,6 +7,8 @@ type Todos struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
 	Status      string `json:"status"`
+	CreatedDate string `json:"created_date"`
+	UpdatedDate string `json:"updated_date"`
 }
 
 type CreateTodoRequest struct {

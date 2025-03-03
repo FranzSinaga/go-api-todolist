@@ -6,7 +6,6 @@ import (
 	api_helper "go-todos-api/src/api/helper"
 	"go-todos-api/src/model"
 	"io"
-	"log"
 	"net/http"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -21,7 +20,7 @@ func SetDB(database *sql.DB) {
 
 func GetTodos(w http.ResponseWriter, r *http.Request) {
 	var todos []model.Todos
-	rows, err := db.Query("SELECT id, title, description, status FROM todos WHERE status NOT LIKE 'Deleted'")
+	rows, err := db.Query("SELECT id, title, description, status, created_date, updated_date FROM todos WHERE status NOT LIKE 'Deleted'")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -31,12 +30,11 @@ func GetTodos(w http.ResponseWriter, r *http.Request) {
 	hasData := false
 	for rows.Next() {
 		var todo model.Todos
-		if err := rows.Scan(&todo.ID, &todo.Title, &todo.Description, &todo.Status); err != nil {
+		if err := rows.Scan(&todo.ID, &todo.Title, &todo.Description, &todo.Status, &todo.CreatedDate, &todo.UpdatedDate); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		todos = append(todos, todo)
-		log.Print(todo.Title)
 		hasData = true
 	}
 
